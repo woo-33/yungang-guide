@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>云导览 · 看懂云冈石窟</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{--bg:#f5f0e6;--card:#fffaf0;--ink:#2b2b2b;--sub:#6b655b;--red:#9b2d20;--line:#e4dccb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1d1b18;--card:#27241f;--ink:#efe8da;--sub:#a79f90;--red:#d4574a;--line:#3a352d}}
+:root[data-theme="dark"]{--bg:#1d1b18;--card:#27241f;--ink:#efe8da;--sub:#a79f90;--red:#d4574a;--line:#3a352d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:"Songti SC","Noto Serif SC",serif;margin:0}
+.sans{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px}
+.red{color:var(--red)}.sub{color:var(--sub)}
+.btn{background:var(--red);color:#fff;border-radius:999px;padding:14px 0;width:100%;font-size:17px;font-family:-apple-system,"PingFang SC",sans-serif;transition:transform .15s}
+.btn:active{transform:scale(.97)}
+.fade{animation:f .35s ease both}@keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.hot{cursor:pointer}.hot circle.p{animation:p 2s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes p{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.9;transform:scale(1.35)}}
+#sheet{position:fixed;left:0;right:0;bottom:0;transform:translateY(105%);transition:transform .3s ease;z-index:20;max-height:78vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);max-width:520px;margin:0 auto}
+#sheet.open{transform:none}
+.opt{display:block;width:100%;text-align:left;padding:14px 16px;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);font-size:17px}
+.opt.ok{border-color:#3d7a4a;background:rgba(61,122,74,.12)}.opt.no{border-color:var(--red);opacity:.6}
+.scroll{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 20px 12px;margin:0 -20px}
+.scroll>div{flex:0 0 62%;scroll-snap-align:start}
+body{background-image:radial-gradient(circle at 100% 0,rgba(155,45,32,.07),transparent 40%),radial-gradient(circle at 0 100%,rgba(155,45,32,.05),transparent 35%)}
+.card{box-shadow:0 1px 0 var(--line),0 6px 18px rgba(60,40,20,.05)}
+[style*="background:var(--red)"] svg.red{color:#fff}
+.seal{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;background:var(--red);color:#fff;font-weight:700;font-size:15px;line-height:1.05;text-align:center;transform:rotate(-4deg)}
+.stat b{display:block;font-size:26px;color:var(--red);line-height:1.1}
+.hero-art{position:absolute;right:-70px;top:-20px;width:310px;opacity:.2;pointer-events:none}
+#lang{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:14px;z-index:15;background:var(--card);color:var(--red);border:1px solid var(--red);border-radius:999px;padding:6px 14px;font-size:14px;font-family:-apple-system,"PingFang SC",sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.term{border-bottom:2px dashed var(--red);cursor:pointer}
+#tip{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;max-width:488px;margin:0 auto;padding:18px;display:none;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<div id="app" class="mx-auto max-w-[520px] min-h-screen px-5 pb-16"></div>
+<div id="sheet" class="card"></div>
+<div id="tip" class="card"></div>
+<button id="lang" onclick="toggleLang()">繁體</button>
+
+<script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+<script>
+/* ================= 数据层(与 UI 分离,日后只改这里) ================= */
+const DATA = {
+  home: { title: "看懂云冈石窟", sub: "一分钟学会看佛像" },
+  cave20: {
+    name: "第20窟 · 露天大佛",
+    image: null, // 换成真实照片:如 "img/cave20.jpg",有值时替代下方示意图
+    facts: [["这是谁?","如来佛像"],["有多大?","约14米"],["什么姿势?","结跏趺坐"],["手势?","禅定印"]],
+    hotspots: [
+      {n:"肉髻", x:150,y:52, t:"头顶隆起的发髻状凸起", d:"佛头顶上的隆起,是佛“三十二相”之一。", m:"表示智慧圆满、超越常人。造像上它也是区分佛与菩萨的关键:菩萨通常戴宝冠,佛则是肉髻。", l:"抬头看头顶是否有圆隆的凸起。云冈早期大佛的肉髻较高。"},
+      {n:"耳垂", x:104,y:98, t:"大而下垂,长及肩部", d:"佛的耳朵硕大,耳垂常垂到肩上。", m:"相传释迦出身王族,曾佩戴沉重耳饰,出家后耳饰除去,耳垂却已被拉长。后来成为佛“福相”的固定特征。", l:"对比菩萨:菩萨常戴耳饰,佛的耳垂是空的。"},
+      {n:"面部", x:150,y:96, t:"方圆丰满,神情安定", d:"面型丰满圆润,双耳垂肩,双目有神,神情慈祥,鼻梁高挺。", m:"平静的神情表示内心安定、已脱离烦恼。学者常认为,高鼻深目等特点带有西域与犍陀罗艺术的影响,同时融入北魏时期的审美。", l:"退远几步整体看。大佛原本就是按仰视设计的。"},
+      {n:"肩膀", x:92,y:150, t:"宽厚平直", d:"肩部宽阔平直,与厚重的躯干连成一体。", m:"宽肩与厚重身体强调威严和力量,是云冈早期大佛的突出特点。后来的造像渐趋清瘦修长,风格明显不同。", l:"比较肩宽与头的比例,感受“山一样”的体量。"},
+      {n:"佛衣", x:150,y:195, t:"袈裟的穿法", d:"袈裟是僧人的法衣。多数资料称这尊大佛为袒右肩式(露出右肩)。", m:"袒右肩源自印度,是表示恭敬的礼仪穿法。通肩是两肩都盖住,褒衣博带则是后来受汉地服饰影响的宽衣大袖样式。穿法能帮你判断造像的时代与风格。", l:"看右肩是否露出、衣角从哪里搭过。下方“佛衣三种穿法”有对照。"},
+      {n:"禅定印", x:150,y:262, t:"双手置于腹前", d:"双手放在腹前,两手相叠,掌心向上。这是佛教造像中非常常见的一种手印,通常与禅定、静观等意义相关。", m:"象征专注内心、入定修行,与释迦在菩提树下坐禅悟道的情景相关。", l:"此处手部已残损,多数导览称其为禅定印,具体请以现场与权威资料为准。"},
+      {n:"结跏趺坐", x:150,y:318, t:"双腿盘起,脚心向上", d:"两腿交叉盘坐,双脚脚掌朝上。", m:"传说释迦成道时就是这样端坐。盘结稳固,象征修行坚定、不动摇,是佛像最庄严的坐姿。对比:17窟弥勒菩萨是交脚坐,还有垂腿而坐的“善跏坐”。", l:"看腿部宽厚的衣摆如何形成稳稳的底座。"},
+      {n:"背光", x:236,y:120, t:"佛身后的光环", d:"佛身后的光明装饰,分头部的“头光”与全身的“身光”。", m:"象征佛身放射智慧的光明。云冈的背光常雕有火焰纹、莲花、化佛和飞天。", l:"大佛背光风化严重,可在身后石壁上找痕迹。"},
+      {n:"飞天与周边", x:62,y:38, t:"佛旁边的小人物", d:"佛的周围常有小型人物。飞天是飘在空中的天人,衣带飘扬,奏乐、散花、供养佛。", m:"飞天不是“天使”,而是佛教中赞叹、供养佛的天界众生,用来烘托说法时的庄严与热闹。云冈飞天多见于背光上缘、窟顶和壁面上部。大佛两侧原有胁侍立佛,现存东侧一尊。", l:"抬头找飘带与衣袖的流动曲线,再看两侧的陪衬立佛。"}
+    ],
+    info: [["什么时候造的?","约公元460年前后,北魏和平年间,属云冈第一期"],["谁主持?","据《魏书·释老志》,僧人昙曜请求开凿五窟"],["为何露天?","一般认为窟前壁与窟顶后世崩塌,原本是有窟顶的大窟"],["云冈分几期?","一期约460–470年代(昙曜五窟);二期至494年迁都洛阳前;三期以后多为中小窟"]]
+  },
+  robes: [
+    {n:"通肩", d:"袈裟覆盖双肩,像披一条围巾。", m:"常见于早期造像,受犍陀罗风格影响。"},
+    {n:"袒右肩", d:"露出右肩,衣从左肩搭过。", m:"源自印度礼仪,表示恭敬。第20窟多被描述为此式。"},
+    {n:"褒衣博带", d:"宽衣大袖,衣带飘垂,层次多。", m:"受汉地服饰影响,多见于云冈后期,体现佛像的汉化。"}
+  ],
+  tanyao: [
+    {no:16, main:"释迦立像", h:"约13.5米", feat:"立像,身形挺拔", story:[
+      ["为什么要开凿?","公元446年起,北魏太武帝推行灭佛,寺庙被毁、僧人受难。452年文成帝即位,恢复佛教,僧人昙曜受到重用,任沙门统。据《魏书·释老志》,他请求在京城西的武州塞开凿五所石窟,各雕一尊大佛,这就是昙曜五窟。"],
+      ["主像","第16窟主像是立佛,施无畏印,立于莲座之上,周壁雕千佛与佛龛。五窟里立像不多,显得格外高大挺拔。"],
+      ["窟形","窟平面接近马蹄形,顶部呈穹隆状。五窟窟形相近,常被解释为模仿草庐或天幕,让巨像占满整个空间。"],
+      ["故事细节","有一种解释认为五窟与北魏历代皇帝有关,第16窟常被放在序列的开头,但各窟具体对应谁,学者说法不一,详见“皇帝大佛”卡。"],
+      ["找找小细节","背光边缘找火焰纹,壁面高处找飞天,脚下找莲花座。不少已风化,需要细看。"],
+      ["现场怎么看","先看站姿与衣纹,再抬头找壁面上的千佛和小龛。大窟壁面常有后来补刻的小龛,说明这里长期是礼拜场所。"]]},
+    {no:17, main:"交脚弥勒菩萨", h:"约15.6米", feat:"交脚而坐,菩萨装", story:[
+      ["主像是谁?","主像是弥勒菩萨。弥勒是未来将降生成佛的菩萨,所以与佛朴素的样子不同,通常戴宝冠、有饰物。"],
+      ["交脚坐的含义","两腿在脚踝处交叉而坐,是云冈弥勒菩萨的常见坐法,常被解释为他正在兜率天宫说法。"],
+      ["三世佛","窟内另有坐佛、立佛,一般认为与主像一起构成“三世”(过去、现在、未来)的格局。"],
+      ["找找小细节","留意菩萨的宝冠与璎珞,佛座上的莲花,以及高处壁面的飞天。"],
+      ["现场怎么看","和第20窟对比:同样巨大,但17窟的主像是菩萨装。看头冠、饰物和坐姿,就能分清佛与菩萨。"]]},
+    {no:18, main:"释迦立佛", h:"约15.5米", feat:"佛衣上刻满小佛", story:[
+      ["千佛袈裟","主佛的袈裟上雕满小佛,像披着一件由无数佛组成的衣服。常被理解为“千佛”,象征十方三世佛无处不在。"],
+      ["弟子像","窟壁上刻有弟子像围绕主佛,可以顺便练习分辨“佛”和“弟子”。"],
+      ["找找小细节","除了千佛,还可找背光上的化佛、火焰纹与飞天。"],
+      ["现场怎么看","站在佛脚边仰头,看衣服上小佛的排列。风化重的地方小佛已经模糊,更要靠近细看。"]]},
+    {no:19, main:"坐佛", h:"约16.8米", feat:"五窟中主像最高", story:[
+      ["最大的一尊","第19窟主像是施无畏印的坐佛,是昙曜五窟中最高的一尊,约16.8米。"],
+      ["两个耳洞","主窟左右各有一个较大的侧洞,常称“耳洞”,洞内也有大像,像是主佛两侧的陪衬。"],
+      ["找找小细节","两个耳洞与主佛之间,留意胁侍像与壁面上部的飞天、莲花。"],
+      ["现场怎么看","和第20窟并排比较:19窟的体量压迫感最强,留意主佛与耳洞之间尺度的落差。"]]},
+    {no:20, main:"露天大佛", h:"约14米", feat:"禅定印", go:true}
+  ],
+  common: [["窟形","平面接近马蹄形,顶部呈穹隆状,常被解释为模仿草庐或天幕。"],["主像","都是体量巨大的佛或菩萨,占满窟内大半空间。"],["风格","宽肩厚体、面相方圆、气势雄浑,是云冈早期风格。"],["装饰","背光与壁面上常见飞天、莲花、火焰纹,多已风化,要仰头细找。"]],
+  terms: {
+    "飞天":"凌空飞舞的天人,没有翅膀,靠飘带与衣袖表现飞行。他们奏乐、散花,供养并赞叹佛,不是“天使”。多在背光上缘、窟顶、壁面上部。",
+    "伎乐天":"奏乐歌舞的天人。云冈第12窟又称“音乐窟”,前室雕有大量伎乐天与乐器。",
+    "莲花":"佛教中象征清净,出淤泥而不染。佛与菩萨常坐在莲花座上,窟顶、背光也常雕莲花。",
+    "火焰纹":"背光边缘如火焰跳动的纹样,象征佛身放出的光明与智慧。",
+    "千佛":"大量相同的小佛整齐排列,象征十方三世的佛无处不在。",
+    "化佛":"背光或佛身上雕出的小佛,表示佛的化身。",
+    "背光":"佛身后的光明装饰,分头部的“头光”与全身的“身光”,常配火焰纹、莲花、化佛和飞天。",
+    "肉髻":"佛头顶隆起的发髻状凸起,是“三十二相”之一,象征智慧圆满。",
+    "璎珞":"菩萨身上的串珠项饰,是区分菩萨与佛的标志之一。",
+    "宝冠":"菩萨头戴的华丽冠饰。佛不戴冠,只有肉髻。",
+    "袈裟":"僧人的法衣,佛像身上穿的就是袈裟。",
+    "袒右肩":"露出右肩、衣从左肩搭过的穿法,源自印度,表示恭敬。",
+    "通肩":"袈裟覆盖双肩,像披围巾。早期造像常见。",
+    "褒衣博带":"宽衣大袖、衣带飘垂的样式,受汉地服饰影响,多见于云冈后期。",
+    "禅定印":"双手相叠置于腹前、掌心向上的手印,与禅定、静观相关。",
+    "结跏趺坐":"双腿盘结、脚心朝上的坐姿,相传是释迦成道时的坐姿,最为庄严稳固。",
+    "交脚":"两腿在脚踝处交叉而坐,云冈弥勒菩萨的常见坐法。",
+    "弥勒":"佛教中将在未来降生成佛的菩萨,所以现在是菩萨装。",
+    "三世佛":"过去、现在、未来三世的佛,常成组出现。",
+    "胁侍":"站在主佛两侧陪衬的像,突出主像的中心地位。",
+    "耳洞":"第19窟主窟两侧的大型侧洞,洞内也有大像。",
+    "沙门统":"北魏管理佛教事务的僧官。",
+    "本生":"讲述佛前世修行故事的内容,常见舍身饲虎、割肉贸鸽等。",
+    "佛传":"讲述释迦牟尼一生的故事,可分为入胎、诞生、出家、成道、说法、涅槃等阶段。",
+    "二佛并坐":"并排而坐的释迦佛与多宝佛,出自《法华经》。"
+  },
+
+  stories: [
+    {n:"佛传:释迦的一生",tag:"连环画",steps:["乘象入胎:摩耶夫人梦见白象入怀,预示圣人降生。","树下诞生:太子悉达多在蓝毗尼园树下诞生,常伴“九龙灌浴”的传说。","四门出游:太子出游,见到老、病、死与出家人,开始思索解脱。","夜半逾城:太子骑白马离宫,出家寻道。","降魔成道:在菩提树下战胜魔军,觉悟成佛。","初转法轮:在鹿野苑首次说法,度化最初的弟子。","涅槃:八十岁时在拘尸那迦圆寂。"],means:"这是佛像“是谁”的答案:他本是一位王子,经历出家与觉悟,成为释迦牟尼佛。",at:"第6窟满壁佛传浮雕,是云冈看佛传最集中的地方。"},
+    {n:"舍身饲虎",tag:"本生故事",steps:["释迦的前世是萨埵太子,出游时见到饥饿的母虎和幼虎。","母虎饿得几乎要吃掉自己的孩子。","太子无力救它们,便纵身跳下,以自己的身体喂虎。"],means:"“本生”讲的是佛的前世。这则故事表现舍己救人的慈悲。",at:"云冈部分中期洞窟有本生、因缘故事浮雕,位置请以现场导览为准。"},
+    {n:"割肉贸鸽",tag:"本生故事",steps:["尸毗王是释迦的前世。一只鸽子被鹰追赶,逃进国王怀中。","鹰向国王要回猎物,说鸽子是它的食物。","国王割下自己的肉,与鸽子称重相换,直到自己整个人坐上秤盘。"],means:"表现不惜牺牲自己也要护佑生命的誓愿。",at:"同属本生故事,现场请参考导览确认具体位置。"},
+    {n:"二佛并坐",tag:"经变",steps:["《法华经》中,释迦牟尼正在说法。","忽然一座宝塔从地下涌出,塔中多宝佛赞叹所说为真。","多宝佛分出半个座位,请释迦同坐。"],means:"并排而坐的两尊佛,就是释迦与多宝佛,象征所说教法真实可信。",at:"云冈中期洞窟常见二佛并坐,在龛楣、壁面上留意并排而坐的两尊佛。"},
+    {n:"弥勒的故事",tag:"未来佛",steps:["弥勒现在是菩萨,住在兜率天宫说法。","据经说,他将来会下生人间,在龙华树下成佛。","所以云冈的弥勒常是交脚、戴宝冠的菩萨装。"],means:"弥勒代表对未来的期盼,是北魏信众格外尊崇的对象。",at:"第17窟、第13窟的主像。"}
+  ],
+  emperor: {
+    facts: ["昙曜五窟的主像都是体量巨大的佛像。","这些洞窟开凿于北魏时期,约五世纪中叶。","据文献记载,与僧人昙曜的建议有关。","现存造像因风化与历史变迁,细节有损毁。"],
+    views: ["部分研究者认为,五尊大佛可能分别对应北魏的几位皇帝。","也有研究者强调佛教信仰本身,认为不必一一对应具体人物。","“皇帝大佛”是后人的解释性称呼,并非佛像身份的确定名称。"]
+  },
+  kinds: [
+    {c:"人物",n:"佛",k:"fo",look:"头顶有肉髻,耳垂长大,衣着简朴,不戴冠和饰物。",why:"佛已觉悟,放下装饰,所以样貌朴素。",at:"第20窟大佛是典型代表。"},
+    {c:"人物",n:"菩萨",k:"pu",look:"戴宝冠、项饰和璎珞,服饰华丽。",why:"菩萨仍在度化众生的路上,保留世间贵族的装扮。",at:"云冈洞窟里常站在佛的两侧。"},
+    {c:"人物",n:"弥勒菩萨",k:"mi",look:"菩萨装、交脚而坐。",why:"弥勒是未来佛,现在仍是菩萨,所以头戴宝冠。",at:"第17窟、第13窟的主像。"},
+    {c:"人物",n:"弟子",k:"di",look:"僧人相,光头无肉髻,双手合十或持物,立在佛旁。",why:"弟子是追随者,陪衬佛的中心地位。常见迦叶、阿难,迦叶多为老成相,阿难多为年轻相。",at:"第18窟壁面可见弟子像。"},
+    {c:"人物",n:"天王",k:"tw",look:"戴盔披甲,瞪目怒眉,姿态威猛。",why:"他们是护法,用威猛的形象守护佛法。",at:"多见于门侧与壁面。"},
+    {c:"人物",n:"力士",k:"ls",look:"上身赤裸,肌肉夸张,常举臂托物。",why:"力士以力量护持佛法,也常用来承托结构。",at:"第13窟弥勒右臂下有托臂力士。"},
+    {c:"人物",n:"飞天",k:"ft",look:"悬在空中,衣带飞扬,捧花或奏乐。",why:"他们是供养佛的天人,烘托说法时的庄严热闹。",at:"背光上缘、窟顶、壁面上部。"},
+    {c:"人物",n:"伎乐天",k:"jl",look:"手持乐器的天人,或坐或立。",why:"以音乐供养佛,表现天界的欢愉。",at:"第12窟“音乐窟”最集中。"},
+    {c:"人物",n:"供养人",k:"gy",look:"体形小,常成排站立,手持花或供物。",why:"他们是出资造像的信徒,把自己刻在佛脚下表示供养。",at:"多在佛龛下部或壁面低处,有时附题记。"},
+    {c:"人物",n:"千佛",k:"qf",look:"大量相同的小佛整齐排列。",why:"象征十方三世佛无处不在,也方便信众礼拜。",at:"第18窟佛衣上有千佛。"},
+    {c:"手印",n:"禅定印",k:"cd",look:"双手相叠置于腹前,掌心向上。",why:"表示入定、专注内心,与释迦坐禅悟道相关。",at:"第20窟大佛常被介绍为此印。"},
+    {c:"手印",n:"施无畏印",k:"sw",look:"一手抬起,掌心向外。",why:"意为“不要害怕”,给人安稳与保护。",at:"云冈立佛、坐佛都常见。"},
+    {c:"手印",n:"与愿印",k:"yy",look:"手下垂,掌心向外。",why:"表示满足众生的愿望,常与施无畏印搭配。",at:"常见于立佛的另一只手。"},
+    {c:"坐姿",n:"结跏趺坐",k:"jj",look:"双腿盘结,脚心朝上。",why:"相传释迦成道时的坐姿,稳固庄严。",at:"第20窟大佛。"},
+    {c:"坐姿",n:"交脚坐",k:"jc",look:"双腿在脚踝处交叉。",why:"云冈常用来表现弥勒菩萨,在兜率天宫说法。",at:"第17窟、第13窟。"},
+    {c:"坐姿",n:"倚坐",k:"yz",look:"坐在高座上,双腿垂下。",why:"姿态更接近日常端坐,多见于中期以后的造像。",at:"各窟的中后期佛像。"},
+    {c:"坐姿",n:"立像",k:"li",look:"挺身站立,衣纹自上垂下。",why:"立像显得高大挺拔,以身姿表现庄严。",at:"第16窟、第18窟的主像。"}
+  ]
+};
+
+
+const ALLN={
+1:["塔洞","tower","—","","位于东端,与第2窟并列、同期开凿,窟内布局相似,中央有方形立柱。"],
+2:["塔洞","tower","—","","与第1窟并列,中央有方形立柱。"],
+3:["最大窟","hall","后室一佛二菩萨","前崖高约25米,崖上有12个方孔","云冈最大的石窟,分前后室。传为昙曜译经楼;前室上部凿弥勒窟室与一对三层方塔。后室三像多认为是隋唐(一说初唐)作品。"],
+4:["方柱","tower","东壁交脚弥勒","","平面矩形,中央方柱,南北面各六佛、东西面各三佛;东壁交脚弥勒较完整。分期各家略有出入。"],
+5:["17米","hall","坐佛","佛高约17米","窟前有五间四层木构楼阁,清顺治八年(1651年)建。主佛是云冈最大的造像。与第6窟为双窟。"],
+6:["佛传","tower","塔柱四面佛","塔柱两层,高约15米;窟高约20米","云冈最宏大华丽的洞窟之一,塔柱连接窟顶,满壁佛传浮雕。孝文帝时期开凿。"],
+7:["双窟","hall","","","前后两室,窟前有三层木构窟檐。后室正壁上层有菩萨坐狮子座,南壁门拱上六身供养菩萨形象优美。与第8窟为双窟。"],
+8:["湿婆","hall","","","与第7窟为双窟,门两侧有鸠摩罗天与湿婆天,可见印度宗教艺术的影响。"],
+9:["五华洞","hall","","","五华洞(第9–13窟)之一,与第10窟为双窟,前廊仿汉式殿堂,雕刻华丽。"],
+10:["五华洞","hall","","","与第9窟为双窟,前廊雕刻精美。"],
+11:["塔柱","tower","方形塔柱四面佛","塔柱直达窟顶","五华洞之一,东壁有北魏太和七年(483年)造像题记,记录信众供养。"],
+12:["音乐窟","hall","","","五华洞之一,窟壁上端雕有伎乐天与乐器,是研究北魏音乐舞蹈的珍贵资料。"],
+13:["托臂力士","hall","交脚弥勒","高12米多","正中交脚弥勒,右臂下有力士托举。"],
+14:["风化","horse","","进深约8.5米,宽约7.6米,高约9米","前后室结构,后室穹隆顶,具早期大像窟风格,东西壁各有上下两龛。雕像多已风化,开凿后未完成。"],
+15:["万佛洞","small","小佛坐像","一万余尊","壁面雕满一万多尊小佛坐像,排列有序,远看相似、近看各异,局部已风化。开凿后未完成。"],
+31:["佛经故事","small","","","西区中小窟,可见降魔成道、降服迦叶等佛经故事浮雕,明窗东壁有乘象人物。"],
+38:["小窟精品","small","二佛并坐龛","宽约1.98米,进深约1.45米,高约1.82米","方形小窟,第三期代表。窟顶满饰平棊藻井,中心团莲、化生童子与二十身飞天乐伎;北壁圆拱二佛并坐龛;窟门外有太和十九年(495年)《吴天恩造像记》。"],
+39:["五层塔","tower","五层塔柱","","窟中立五层塔柱,每层开间递减,斗拱承檐,是研究早期造塔的重要资料。"],
+40:["装饰","small","","","整体布局巧妙运用装饰艺术,格式与构图规整而有变化。"],
+41:["佛传","hall","北壁坐佛","","佛殿窟,近方形,南壁已坍塌。北壁方形龛内为坐佛,龛两侧雕佛传:树下诞生、七步生莲、逾城出家、白马吻足、树下禅定。"]};
+const TY={16:"立佛",17:"弥勒",18:"千佛衣",19:"坐佛",20:"露天佛"};
+const SH={tower:"中心塔柱窟",hall:"前后室佛殿窟",horse:"椭圆形大像窟(穹隆顶)",small:"小型方窟(多为四壁三龛)"};
+const LK={
+1:["中央方形立柱,绕柱可看各面佛龛","与第2窟并列、布局相似,可对照参观"],
+2:["中央方形立柱,绕柱而行","与第1窟对照,比较两窟的相似布局"],
+3:["在窟外仰望约25米的崖面和12个方孔","前室上部的弥勒窟室与一对三层方塔","后室一佛二菩萨,面颊丰润、衣纹流畅,风格晚于北魏"],
+4:["中央方柱:南北面各六佛、东西面各三佛","东壁保存较完整的交脚弥勒"],
+5:["窟前的五间四层木构楼阁","仰望约17米的坐佛,感受云冈最大造像的尺度"],
+6:["绕塔柱一周,看塔柱四面的佛像","壁面的佛传浮雕(可对照“佛的故事”)","抬头看窟顶,窟内高约20米"],
+7:["后室正壁上层坐在狮子座上的菩萨","南壁门拱上六身供养菩萨","窟前的三层木构窟檐"],
+8:["门两侧的鸠摩罗天与湿婆天,留意多臂多头的造型","对比第7窟,感受双窟的搭配"],
+9:["前廊的柱廊与仿汉式殿堂的雕刻","与第10窟对照,看双窟的对称布局"],
+10:["前廊精美的雕刻装饰","与第9窟对照参观"],
+11:["方形塔柱与四面佛","东壁太和七年(483年)的造像题记"],
+12:["壁面上端的伎乐天与各种乐器","对照“看佛像”里的伎乐天"],
+13:["高12米多的交脚弥勒","右臂下的托臂力士"],
+14:["后室穹隆顶与东西壁对称的上下龛","大面积风化,体会岁月留下的痕迹"],
+15:["密密排列的万余尊小佛","远看相似,走近看各不相同"],
+31:["降魔成道、降服迦叶等佛经故事浮雕","明窗东壁的乘象人物"],
+38:["窟顶的团莲、化生童子与二十身飞天乐伎","北壁圆拱二佛并坐龛","东壁交脚菩萨龛","窟门外太和十九年的《吴天恩造像记》"],
+39:["五层塔柱的仿木结构:斗拱、出檐、逐层缩小","对比其他窟的塔柱,看塔的样式变化"],
+40:["整体布局规整而有变化,留意装饰的节奏"],
+41:["北壁龛两侧的佛传浮雕:从西侧自上而下,再从东侧自下而上","树下诞生、七步生莲、逾城出家、白马吻足、树下禅定"]};
+const LKW=["藻井中飘逸的飞天","瘦骨清相的佛像与层叠的衣纹","大窟壁面或窟旁补刻的小龛"];
+DATA.all=Array.from({length:45},(_,i)=>{const no=i+1,z=no<=4?"东区":no<=13?"中区":"西区",n=ALLN[no];
+  const p=no>=16&&no<=20?"一期(约460–465年起)":no>=21?"三期(494年迁都后)":"二期(约470–493年),分期各家略有出入";
+  return {no,z,p,t:no>=16&&no<=20,tag:TY[no]||(n?n[0]:""),k:!!n,sh:n?n[1]:(no>=21?"small":"hall"),main:n&&n[2]||"—",size:n&&n[3]||"—",
+   note:n?n[4]:no>=21?"西区中小窟,多为494年迁都后所凿,造像瘦骨清相,藻井飞天飘逸,汉化风格明显。单窟资料待补充。":"具体讲解待补充。"}});
+DATA.zones=[{n:"东区",r:[1,4],d:"塔洞与大窟,云冈的东端。"},{n:"中区",r:[5,13],d:"二期华丽窟集中,双窟与五华洞都在这里。"},{n:"西区",r:[14,45],d:"昙曜五窟在此,另有大量中小型洞窟。"}];
+DATA.overview=[["规模","现存主要洞窟45个,附属洞窟209个,东西绵延约1公里。造像最高约17米,最小仅2厘米。"],["三期","一期约460–465年起(昙曜五窟):浑厚雄壮。二期约470–494年:精雕华丽,汉化渐显。三期(迁都洛阳后):窟小,造像清瘦俊美。"],["说明","造像总数、分期各资料略有差异(造像约5.1–5.9万尊)。"]];
+DATA.cave20.extra=[
+ ["为什么是“露天”大佛?","一般认为,这里原本是有窟顶和前壁的大窟,后来前壁与窟顶崩塌,大佛才完整地暴露在天空之下。也因此,今天能一眼看到整尊大佛的全身。主佛胸以上部位保存较完整,是云冈最具代表性的形象之一。"],
+ ["它在昙曜五窟中的位置","五窟自东向西为第16至20窟,第20窟位于最西。五窟的共同点是:窟形近似椭圆的草庐,不设后室,外壁满雕千佛,主佛形体高大,占据窟内主要位置。主像常被理解为三世佛(过去、现在、未来)的格局。"],
+ ["和另外四窟怎么区分","第16窟:施无畏印立佛。第17窟:交脚弥勒菩萨。第18窟:立佛,佛衣刻满小佛。第19窟:施无畏印坐佛。第20窟:禅定印坐佛。看手印和坐姿,就能一眼分清它们。"],
+ ["推荐的观看顺序","先退到远处,看大佛整体的轮廓与体量;再走近,看面部和肩;接着看双手与盘腿;最后找背光和周围的痕迹。每一步对应下面的一张卡片。"]];
+const TIPS=["佛头顶的肉髻不是帽子,而是佛“三十二相”之一,象征智慧。","佛不戴首饰,菩萨才戴宝冠和璎珞,这是区分两者最快的办法。","飞天没有翅膀,靠飘带与衣袖“飞”在空中。","云冈最大的造像约17米,最小的只有约2厘米。","云冈开凿于公元460年前后,距今已有1500多年,是北魏的皇家工程。","双手相叠放在腹前,掌心向上,这个手势叫“禅定印”。"];
+let tipN=0;
+const IMGS={2:"images/02.jpg",3:"images/03.jpg",5:"images/05.jpg",6:"images/06.jpg",7:"images/07.jpg",8:"images/08.jpg",10:"images/10.jpg",11:"images/11.jpg",12:"images/12.jpg",13:"images/13.jpg",14:"images/14.jpg",15:"images/15.jpg",17:"images/17.jpg",18:"images/18.jpg",19:"images/19.jpg",20:"images/20.jpg"};
+function fig(n){ return IMGS[n]?`<figure class="mt-4"><img src="${IMGS[n]}" alt="第${n}窟" class="w-full block" style="border-radius:18px;max-height:62vh;object-fit:cover;border:1px solid var(--line)"><figcaption class="sans sub text-xs mt-2">第${n}窟 · 图片来源:Wikimedia Commons</figcaption></figure>`:""; }
+/* ================= UI 层 ================= */
+const $ = s => document.querySelector(s);
+const app = $("#app"), sheet = $("#sheet");
+let view = "home", step = 0, picked = null, toast = "";
+
+function go(v){ view=v; step=0; picked=null; closeSheet(); render(); scrollTo(0,0); }
+function openSheet(html){ sheet.innerHTML = html; sheet.classList.add("open"); linkTerms(sheet); applyLang(sheet); }
+function linkTerms(root){
+  const re = new RegExp("("+Object.keys(DATA.terms).sort((a,b)=>b.length-a.length).join("|")+")");
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), ns = [];
+  while(w.nextNode()) ns.push(w.currentNode);
+  ns.forEach(n=>{
+    if(n.parentElement.closest("button,.term") || !re.test(n.nodeValue)) return;
+    const f = document.createDocumentFragment();
+    n.nodeValue.split(re).forEach((p,i)=>{
+      if(i%2){ const e=document.createElement("span"); e.className="term"; e.textContent=p; e.dataset.k=p; e.onclick=ev=>{ev.stopPropagation();tip(e.dataset.k)}; f.append(e); }
+      else f.append(p);
+    });
+    n.replaceWith(f);
+  });
+}
+function tip(k){ const t=$("#tip"); t.innerHTML=`<div class="flex justify-between"><b class="text-xl red">${k}</b><button onclick="$('#tip').style.display='none'" class="sans sub text-xl px-2">✕</button></div><p class="mt-2 leading-relaxed">${DATA.terms[k]}</p>`; t.style.display="block"; applyLang(t); }
+function closeSheet(){ sheet.classList.remove("open"); }
+const back = () => `<button onclick="go('home')" class="sans sub py-4 text-base">← 返回</button>`;
+
+function render(){
+  $("#tip").style.display="none";
+  ({home, caves, figures, story, cave20, cave})[view]();
+  linkTerms(app); applyLang(app);
+}
+let lang="cn", conv=null;
+function applyLang(root){
+  if(lang!=="tw"||!window.OpenCC) return;
+  conv=conv||OpenCC.Converter({from:"cn",to:"tw"});
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT), ns=[];
+  while(w.nextNode()) ns.push(w.currentNode);
+  ns.forEach(n=>{ n.nodeValue=conv(n.nodeValue); });
+}
+function toggleLang(){
+  const b=$("#lang");
+  if(lang==="cn"&&!window.OpenCC){ b.textContent="暂不可用"; setTimeout(()=>b.textContent="繁體",1800); return; }
+  lang=lang==="cn"?"tw":"cn"; b.textContent=lang==="cn"?"繁體":"简体";
+  closeSheet(); render();
+  document.title=lang==="cn"?"云导览 · 看懂云冈石窟":"雲導覽 · 看懂雲岡石窟";
+}
+
+function home(){
+  const e=(n,t,d,v,k,hi)=>`<button onclick="go('${v}')" class="w-full text-left p-4 flex items-center gap-4 active:scale-[.98] transition card" style="${hi?"background:var(--red);color:#fff;border-color:var(--red)":""}">
+    <span style="width:64px;display:flex;justify-content:center;${hi?"color:#fff":""}">${ic(k,56)}</span>
+    <span class="flex-1"><div class="sans text-xs ${hi?"":"red"}" style="${hi?"opacity:.8":""}">0${n}</div><div class="text-2xl font-bold">${t}</div><div class="sans text-sm ${hi?"":"sub"}" style="${hi?"opacity:.85":""}">${d}</div></span><span class="text-2xl">→</span></button>`;
+  app.innerHTML=`<div class="fade pt-10 relative">
+    <div class="hero-art"><svg viewBox="0 0 300 300" class="red" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="150" cy="150" r="144" stroke-width="2" stroke-dasharray="2 9"/><circle cx="150" cy="150" r="116" stroke-width="2"/><circle cx="150" cy="150" r="88" stroke-width="2" stroke-dasharray="7 7"/><path d="M20 262Q150 232 280 262" stroke-width="2"/><svg x="70" y="62" width="160" height="186" viewBox="0 0 120 140" stroke-width="2.6">${IC.bud}</svg></svg></div>
+    <div class="flex items-center gap-3 relative"><span class="seal">云冈</span><span class="sans text-sm sub tracking-[.25em]">云导览 · YUNGANG GUIDE</span></div>
+    <h1 class="relative mt-6 font-bold leading-[1.25]" style="font-size:38px">云导览带你看懂<br>云冈石窟</h1>
+    <div class="relative mt-4 flex items-center gap-3"><span class="h-[2px] w-10" style="background:var(--red)"></span><p class="text-xl red font-bold">和你一起看懂佛像</p></div>
+    <div class="grid grid-cols-4 gap-2 mt-8 text-center">
+      <div class="stat"><b>45</b><span class="sans text-xs sub">主要洞窟</span></div>
+      <div class="stat"><b>1km</b><span class="sans text-xs sub">东西绵延</span></div>
+      <div class="stat"><b>17m</b><span class="sans text-xs sub">最高造像</span></div>
+      <div class="stat"><b>1500+</b><span class="sans text-xs sub">年历史</span></div></div>
+    <div class="mt-8 space-y-3">
+      ${e(1,"看洞窟","45窟全览 · 从昙曜五窟开始","caves","cave",true)}
+      ${e(2,"看佛像","佛、菩萨、飞天、手印、坐姿","figures","bud")}
+      ${e(3,"佛的故事","佛传与本生,石壁上的连环画","story","qf")}</div>
+    <button onclick="tipN=(tipN+1)%TIPS.length;home();applyLang(app)" class="card w-full text-left p-5 mt-6" style="border-style:dashed"><div class="sans red text-sm">💡 云冈小知识 · 点一下换一条</div><div class="mt-2 leading-relaxed">${TIPS[tipN]}</div></button>
+    <p class="sans sub text-xs text-center mt-8">云导览 · 内容为科普概述,以现场与权威资料为准</p></div>`;
+  linkTerms(app);
+}
+
+function caves(){
+  const A=DATA.all;
+  app.innerHTML=`<div class="fade">${back()}<h2 class="text-3xl font-bold" style="border-left:5px solid var(--red);padding-left:12px">云冈石窟全览</h2>
+  <p class="sans sub mt-2">45个主要洞窟 · 点编号看每个洞窟的介绍 · 红底为昙曜五窟,讲解最详细</p>
+  <div class="card p-5 mt-4">${DATA.overview.map(f=>`<div class="mb-3 last:mb-0"><div class="sans red text-sm">${f[0]}</div><div class="leading-relaxed">${f[1]}</div></div>`).join("")}</div>
+  ${DATA.zones.map(z=>`<div class="mt-7"><div class="flex items-baseline gap-2"><h3 class="text-2xl font-bold">${z.n}</h3><span class="sans sub text-sm">第${z.r[0]}–${z.r[1]}窟</span></div><p class="sans sub text-sm mt-1">${z.d}</p>
+    <div class="grid grid-cols-5 gap-2 mt-3">${A.filter(c=>c.no>=z.r[0]&&c.no<=z.r[1]).map(c=>`<button onclick="cv(${c.no})" class="card py-3 text-center" style="${c.t?"background:var(--red);color:#fff;border-color:var(--red)":""}"><div class="text-xl font-bold ${c.k&&!c.t?"red":""}">${c.no}</div><div class="sans text-[11px] h-4 ${c.t?"":"sub"}">${c.tag}</div></button>`).join("")}</div></div>`).join("")}
+  <div class="card p-5 mt-8"><h3 class="text-xl font-bold">五窟的共同点</h3>${DATA.common.map(f=>`<div class="mt-3"><div class="sans red text-sm">${f[0]}</div><div>${f[1]}</div></div>`).join("")}</div>${emperor()}</div>`;
+}
+
+function emperor(){
+  const e = DATA.emperor, li = a => a.map(x=>`<li class="mt-2">${x}</li>`).join("");
+  return `<div class="card p-5 mt-8">
+    <h3 class="text-2xl font-bold">为什么有人叫它“皇帝大佛”?</h3>
+    <p class="mt-3">“皇帝大佛”并不是佛像身份的确定名称,而是一种学术解释。</p>
+    <div class="mt-5 p-4 rounded-2xl" style="background:var(--bg)"><div class="sans text-sm font-bold">我们能看到的事实</div><ul class="list-disc pl-5">${li(e.facts)}</ul></div>
+    <div class="mt-4 p-4 rounded-2xl" style="background:var(--bg);border-left:4px solid var(--red)"><div class="sans text-sm font-bold red">研究者的解释</div><ul class="list-disc pl-5">${li(e.views)}</ul></div>
+  </div>`;
+}
+
+function cave20(){
+  const c=DATA.cave20, card=(t,b)=>`<div class="card p-5 mt-4"><h3 class="text-xl font-bold">${t}</h3><p class="mt-2 leading-relaxed">${b}</p></div>`;
+  app.innerHTML=`<div class="fade"><button onclick="go('caves')" class="sans sub py-4 text-base">← 云冈石窟全览</button>
+  <div class="red sans text-sm">昙曜五窟 · 5/5</div><h2 class="text-4xl font-bold mt-1">${c.name}</h2>
+  ${fig(20)}
+  <div class="grid grid-cols-2 gap-3 mt-5">${c.facts.map(f=>`<div class="card p-4"><div class="sans sub text-sm">${f[0]}</div><div class="text-xl font-bold mt-1">${f[1]}</div></div>`).join("")}</div>
+  <div class="card p-5 mt-4"><h3 class="text-xl font-bold">大佛档案</h3>${c.info.map(f=>`<div class="mt-3"><div class="sans red text-sm">${f[0]}</div><div>${f[1]}</div></div>`).join("")}</div>
+  ${c.extra.map(x=>card(x[0],x[1])).join("")}
+  <h3 class="text-2xl font-bold mt-8">从头到脚看大佛</h3>
+  ${c.hotspots.map((h,i)=>`<div class="card p-5 mt-4"><div class="flex items-baseline gap-3"><span class="red text-2xl font-bold">${i+1}</span><div><div class="text-xl font-bold">${h.n}</div><div class="sans sub text-sm">${h.t}</div></div></div>
+    <p class="mt-3 leading-relaxed">${h.d}</p><div class="sans red text-sm mt-3">代表什么</div><p class="leading-relaxed">${h.m}</p><div class="sans red text-sm mt-3">现场怎么看</div><p class="leading-relaxed">${h.l}</p></div>`).join("")}
+  <div class="card p-5 mt-6"><h3 class="text-xl font-bold">佛衣三种穿法</h3>${DATA.robes.map(r=>`<div class="mt-3"><b>${r.n}</b> · ${r.d}<div class="sans sub text-sm">${r.m}</div></div>`).join("")}</div>
+  <div class="flex gap-3 mt-8"><button class="sans card flex-1 py-3" onclick="cv(19)">← 第19窟</button><button class="btn flex-1" style="padding:12px 0" onclick="cv(21)">第21窟 →</button></div></div>`;
+}
+
+let cur=16;
+function cv(n){ if(n==20) return go('cave20'); cur=n; go('cave'); }
+function cave(){
+  const c=DATA.all[cur-1], tn=DATA.tanyao.find(x=>x.no==cur), L=LK[cur]||(cur>=21?LKW:[]), Z=DATA.zones.find(z=>cur>=z.r[0]&&cur<=z.r[1]);
+  const facts=tn?[["主像",tn.main],["高度",tn.h],["最明显的特点",tn.feat],["期别",c.p]]:[["窟形",SH[c.sh]],["主像",c.main],["数据",c.size],["期别",c.p]].filter(f=>f[1]&&f[1]!=="—");
+  const card=(t,b)=>`<div class="card p-5 mt-4"><h3 class="text-xl font-bold">${t}</h3>${b}</div>`;
+  const body=tn?tn.story.map(x=>card(x[0],`<p class="mt-2 leading-relaxed">${x[1]}</p>`)).join(""):
+    card("概述",`<p class="mt-2 leading-relaxed">${c.note}</p>`)+(L.length?card("看点",`<ul class="mt-2 space-y-2">${L.map(t=>`<li class="flex gap-2 leading-relaxed"><span class="red">◆</span><span>${t}</span></li>`).join("")}</ul>`):"");
+  const prev=cur==1?45:cur-1, next=cur==45?1:cur+1;
+  app.innerHTML=`<div class="fade"><button onclick="go('caves')" class="sans sub py-4 text-base">← 云冈石窟全览</button>
+  <div class="red sans text-sm">${c.z}${tn?" · 昙曜五窟":""}${c.tag&&!tn?" · "+c.tag:""}</div>
+  <h2 class="text-4xl font-bold mt-1">第${cur}窟</h2>
+  ${fig(cur)}
+  <div class="grid grid-cols-2 gap-3 mt-5">${facts.map(f=>`<div class="card p-4"><div class="sans sub text-sm">${f[0]}</div><div class="text-lg font-bold mt-1">${f[1]}</div></div>`).join("")}</div>
+  ${body}
+  ${card("所在区域 · "+c.z,`<p class="mt-2 leading-relaxed sub">${Z.d}</p>`)}
+  ${!c.k&&!tn?'<p class="sans sub text-xs mt-4">该窟的单窟资料较少,先以区域与时期概述为主,之后再补充。</p>':""}
+  <div class="flex gap-3 mt-8"><button class="sans card flex-1 py-3" onclick="cv(${prev})">← 第${prev}窟</button><button class="btn flex-1" style="padding:12px 0" onclick="cv(${next})">第${next}窟 →</button></div></div>`;
+}
+
+const IC={
+ fo:'<circle cx="60" cy="48" r="26" stroke-dasharray="2 6"/><circle cx="60" cy="48" r="14"/><path d="M52 36Q60 22 68 36M46 48v12M74 48v12M38 128Q34 82 60 70Q86 82 82 128ZM48 104Q60 112 72 104M26 128h68"/>',
+ pu:'<circle cx="60" cy="48" r="26" stroke-dasharray="2 6"/><circle cx="60" cy="48" r="14"/><path d="M48 36l4-10 8 6 8-6 4 10M48 66Q60 82 72 66M38 128Q34 82 60 70Q86 82 82 128ZM26 128h68"/>',
+ mi:'<circle cx="60" cy="48" r="14"/><path d="M48 36l4-10 8 6 8-6 4 10M48 66Q60 82 72 66M38 114Q34 82 60 70Q86 82 82 114ZM28 120l64 12M92 120L28 132"/>',
+ di:'<circle cx="60" cy="46" r="13"/><path d="M40 128Q36 78 60 66Q84 78 80 128ZM54 94h12v10H54zM28 128h64"/>',
+ tw:'<circle cx="60" cy="52" r="13"/><path d="M44 50Q60 16 76 50M50 48l8 4M70 48l-8 4M40 128Q36 84 60 72Q84 84 80 128ZM44 96h32M46 110h28M98 62a6 6 0 1 0 .1 0M86 96L98 70"/>',
+ ls:'<circle cx="60" cy="42" r="13"/><path d="M38 128Q36 74 60 66Q84 74 82 128ZM48 90Q60 100 72 90M46 76L26 50M74 76L94 50M46 128v-14M74 128v-14"/>',
+ ft:'<circle cx="84" cy="44" r="9"/><path d="M76 54Q50 66 24 60M24 60Q14 50 8 56M44 68Q34 90 16 92M72 56Q88 80 110 76M60 62Q70 72 64 86"/>',
+ jl:'<circle cx="60" cy="40" r="12"/><path d="M40 112Q38 66 60 56Q82 66 80 112ZM30 84l54 18M30 78l8 6"/><circle cx="90" cy="108" r="6"/>',
+ gy:'<circle cx="60" cy="38" r="10"/><path d="M46 130Q46 62 60 52Q74 62 74 130ZM60 92V74l12-8M72 62l6-8"/>',
+ qf:'',
+ cd:'<ellipse cx="50" cy="80" rx="28" ry="11"/><ellipse cx="70" cy="68" rx="28" ry="11"/>',
+ sw:'<rect x="42" y="22" width="36" height="52" rx="14"/><path d="M60 74v44M52 74v10M68 74v10"/>',
+ yy:'<rect x="42" y="64" width="36" height="52" rx="14"/><path d="M60 64V24"/>',
+ bud:'<circle cx="60" cy="50" r="32"/><circle cx="60" cy="50" r="13"/><path d="M53 40Q60 28 67 40M47 50v10M73 50v10M36 106Q34 76 60 68Q86 76 84 106M54 70L70 98"/><ellipse cx="60" cy="94" rx="12" ry="5"/><path d="M22 108Q60 92 98 108Q60 120 22 108Z"/><path d="M18 128Q28 112 40 128M40 128Q50 110 60 128M60 128Q70 110 80 128M80 128Q92 112 102 128M12 128h96"/>',
+ cave:'<path d="M14 128V66Q14 12 60 12T106 66V128ZM6 128h108"/><path d="M28 128V72Q28 30 60 30T92 72V128" stroke-dasharray="3 6"/><circle cx="60" cy="68" r="8"/><path d="M55 61Q60 52 65 61M46 128Q46 94 60 86Q74 94 74 128M52 108Q60 114 68 108"/><path d="M20 44h6M94 38h8M18 96h6"/>',
+ jj:'<path d="M18 108Q60 76 102 108Q60 134 18 108Z"/><circle cx="34" cy="106" r="5"/><circle cx="86" cy="106" r="5"/><path d="M60 40v36"/><circle cx="60" cy="30" r="10"/>',
+ jc:'<circle cx="60" cy="30" r="10"/><path d="M60 40v40M26 118l68-16M94 118L26 102"/>',
+ yz:'<circle cx="60" cy="26" r="10"/><path d="M60 36v40M36 78h48M42 78v50M78 78v50M42 128h-8M78 128h8"/>',
+ li:'<circle cx="60" cy="22" r="10"/><path d="M60 32v60M40 128h40M60 92L46 128M60 92l14 36"/>'
+};
+function ic(k,sz){ let b=IC[k]; if(k==="qf"){b="";for(let r=0;r<3;r++)for(let c=0;c<3;c++){const x=26+c*34,y=28+r*40;b+=`<circle cx="${x}" cy="${y}" r="7"/><path d="M${x-9} ${y+22}Q${x} ${y+6} ${x+9} ${y+22}Z"/>`;}}
+  return `<svg viewBox="0 0 120 140" class="red" style="width:${sz}px;height:${sz*1.1}px" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`; }
+let tab="人物";
+function story(){
+  app.innerHTML=`<div class="fade">${back()}<h2 class="text-3xl font-bold" style="border-left:5px solid var(--red);padding-left:12px">佛的故事</h2><p class="sub sans mt-2">石窟是用石头讲故事,点开看每个故事</p>
+  <div class="space-y-3 mt-5">${DATA.stories.map((x,i)=>`<button onclick="sto(${i})" class="card w-full text-left p-5 active:scale-[.98] transition"><div class="sans red text-sm">${x.tag}</div><div class="text-2xl font-bold mt-1">${x.n}</div><div class="sans sub text-sm mt-2">${x.steps[0]}</div></button>`).join("")}</div></div>`;
+}
+function sto(i){ const x=DATA.stories[i];
+  openSheet(`<div class="p-6"><div class="flex justify-between"><div><div class="sans red text-sm">${x.tag}</div><div class="text-3xl font-bold">${x.n}</div></div><button onclick="closeSheet()" class="sans sub text-2xl px-2">✕</button></div>
+  <ol class="mt-4 space-y-2">${x.steps.map((t,k)=>`<li class="flex gap-3 leading-relaxed"><span class="red font-bold">${k+1}</span><span>${t}</span></li>`).join("")}</ol>
+  <div class="sans red text-sm mt-5">想说明什么</div><p class="leading-relaxed">${x.means}</p>
+  <div class="sans red text-sm mt-4">云冈哪里看</div><p class="leading-relaxed">${x.at}</p></div>`); }
+function figures(){
+  const tabs=["人物","手印","坐姿"];
+  app.innerHTML=`<div class="fade">${back()}<h2 class="text-3xl font-bold" style="border-left:5px solid var(--red);padding-left:12px">这是什么?</h2>
+  <p class="sub sans mt-2">点图看:怎么认、为什么、云冈哪里能找到</p>
+  <div class="flex gap-2 mt-5">${tabs.map(t=>`<button onclick="tab='${t}';render()" class="sans px-5 py-2 rounded-full text-base" style="${t===tab?"background:var(--red);color:#fff":"border:1px solid var(--line)"}">${t}</button>`).join("")}</div>
+  <div class="grid grid-cols-2 gap-3 mt-5">${DATA.kinds.map((k,i)=>[k,i]).filter(x=>x[0].c===tab).map(([k,i])=>`<button onclick="kind(${i})" class="card py-4 flex flex-col items-center active:scale-95 transition">${ic(k.k,86)}<div class="text-xl font-bold mt-1">${k.n}</div></button>`).join("")}</div></div>`;
+}
+function kind(i){
+  const k=DATA.kinds[i];
+  openSheet(`<div class="p-6"><div class="flex justify-between"><div class="flex items-center gap-4">${ic(k.k,84)}<div><div class="sans red text-sm">${k.c}</div><div class="text-3xl font-bold">${k.n}</div></div></div><button onclick="closeSheet()" class="sans sub text-2xl px-2 self-start">✕</button></div>
+    <div class="sans red text-sm mt-4">怎么认</div><p class="text-lg leading-relaxed">${k.look}</p>
+    <div class="sans red text-sm mt-4">为什么</div><p class="text-lg leading-relaxed">${k.why}</p>
+    <div class="sans red text-sm mt-4">云冈哪里看</div><p class="text-lg leading-relaxed">${k.at}</p>
+    <p class="sans sub text-xs mt-4">示意线图,并非云冈实物。</p></div>`);
+}
+render();
+</script>
+</body>
+</html>
